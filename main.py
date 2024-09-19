@@ -9,7 +9,7 @@ hostName = "localhost"
 serverPort = 3000
 stats_file = "nibygotchi_stats.json"
 
-client_stats = ["excess_fullness", "energy", "happiness", "fullness"]
+client_stats = ["energy", "happiness", "fullness"]
 
 # Load stats from file or initialize with defaults
 def load_stats():
@@ -20,7 +20,6 @@ def load_stats():
     else:
         print("File does not exist")
         return {
-            "excess_fullness": 0,
             "energy": 100,
             "happiness": 100,
             "fullness": 100,
