@@ -9,7 +9,7 @@ hostName = "localhost"
 serverPort = 3000
 stats_file = "nibygotchi_stats.json"
 
-client_stats = ["energy", "happiness", "fullness"]
+client_stats = ["energy", "happiness", "fullness", "hi_score"]
 
 # Load stats from file or initialize with defaults
 def load_stats():
@@ -23,6 +23,7 @@ def load_stats():
             "energy": 100,
             "happiness": 100,
             "fullness": 100,
+            "hi_score": 0,
             "last_sync": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
 
