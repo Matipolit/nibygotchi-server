@@ -9,7 +9,38 @@ hostName = "localhost"
 serverPort = 3000
 stats_file = "nibygotchi_stats.json"
 
-client_stats = ["energy", "happiness", "fullness", "hi_score"]
+client_stats = ["energy", "happiness", "fullness", "hi_score", "state"]
+
+class Stat:
+    def __init__(self, time_to_tick_awaken, time_to_tick_asleep, time_to_tick_tv, amount_awaken, amount_asleep, amount_tv):
+        self.time_to_tick_awaken = time_to_tick_awaken
+        self.time_to_tick_asleep = time_to_tick_asleep
+        self.time_to_tick_tv = time_to_tick_asleep
+        self.amount_awaken = amount_awaken
+        self.amount_asleep = amount_asleep
+        self.amount_tv = amount_tv
+
+    def adjust_amount(self, last_value, last_sync, state):
+        time_delta = datetime.now() - last_sync
+        seconds_passed = time_delta.seconds
+        match state:
+            case "awaken":
+                time_delta = self.time_to_tick_awaken
+                amount = self.amount_awaken
+            case "asleep":
+                time_delta = self.time_to_tick_asleep
+                amount = self.amount_asleep
+            case "watching_tv":
+                time_delta = self.time_to_tick_asleep
+                amount = self.amount_tv
+        time_periods_passed = seconds_passed / time_delta
+        return max(last_value - (amount * time_periods_passed), 0)
+
+stat_lib = {
+    "happiness": Stat(50, 100, 33, 1, 0, -3),
+    "energy": Stat(50, 100, 50, 1, -2, 2),
+    "fullness": Stat(50, 100, 50, 1, 1, 1)
+}
 
 
 # Load stats from file or initialize with defaults
@@ -26,6 +57,7 @@ def load_stats():
             "fullness": 100,
             "hi_score": 0,
             "coins": 0,
+            "state": "awaken",
             "last_sync": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
 
@@ -36,8 +68,14 @@ def save_stats(data):
         json.dump(data, file, default=str)
 
 
+def update_stats():
+    for stat in stat_lib.keys():
+        stats[stat] = stat_lib[stat].adjust_amount(stats[stat], datetime.strptime(stats["last_sync"], '%Y-%m-%d %H:%M:%S'), stats["state"])
+
+
 # Initialize stats
 stats = load_stats()
+update_stats()
 
 
 class MyServer(BaseHTTPRequestHandler):
@@ -66,7 +104,6 @@ class MyServer(BaseHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header("Content-type", "application/json")
                 self.end_headers()
-
                 self.wfile.write(bytes(json.dumps(stats, default=str), "utf-8"))
             else:
                 self.write_not_authorized_response()
