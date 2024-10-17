@@ -8,8 +8,10 @@ from urllib.parse import urlparse, parse_qs
 hostName = "localhost"
 serverPort = 3000
 stats_file = "nibygotchi_stats.json"
+shop_file = "purchased_items.json"
 
 client_stats = ["energy", "happiness", "fullness", "hi_score", "state"]
+shop_items = []
 
 class Stat:
     def __init__(self, time_to_tick_awaken, time_to_tick_asleep, time_to_tick_tv, amount_awaken, amount_asleep, amount_tv):
@@ -50,7 +52,7 @@ def load_stats():
         with open(stats_file, 'r') as file:
             return json.load(file)
     else:
-        print("File does not exist")
+        print("Stats file does not exist")
         return {
             "energy": 100,
             "happiness": 100,
@@ -61,12 +63,23 @@ def load_stats():
             "last_sync": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
 
+def load_shop_items():
+    if os.path.exists(shop_file):
+        print("Reading shop items from file")
+        with open(stats_file, 'r') as file:
+            return json.load(file)
+    else:
+        print("Shop file does not exist")
+        return([])
 
 # Save stats to file
 def save_stats(data):
     with open(stats_file, 'w') as file:
         json.dump(data, file, default=str)
 
+def save_shop_items(data):
+    with open(shop_file, "w") as file:
+        json.dump(data, file, default=str)
 
 def update_stats():
     for stat in stat_lib.keys():
@@ -77,6 +90,7 @@ def update_stats():
 stats = load_stats()
 update_stats()
 
+shop_items = load_shop_items()
 
 class MyServer(BaseHTTPRequestHandler):
     def __init__(self, *args, passwd=None, **kwargs):
@@ -101,6 +115,8 @@ class MyServer(BaseHTTPRequestHandler):
 
         if parsed_url.path == "/nibygotchi":
             if query_params.get("passwd", [None])[0] == self.passwd:
+                new_stats = stats
+                new_stats[shop_items] = shop_items;
                 self.send_response(200)
                 self.send_header("Content-type", "application/json")
                 self.end_headers()
@@ -165,6 +181,7 @@ class MyServer(BaseHTTPRequestHandler):
                         'message': 'Invalid JSON format'
                     }
                     self.wfile.write(json.dumps(response).encode('utf-8'))
+
             elif parsed_url.path == "/nibygotchi/coins":
                 content_length = int(self.headers['Content-Length'])
                 post_data = self.rfile.read(content_length)
@@ -191,6 +208,48 @@ class MyServer(BaseHTTPRequestHandler):
                     response = {
                         'status': 'error',
                         'message': 'Could not parse the coins amount'
+                    }
+                    self.wfile.write(json.dumps(response).encode('utf-8'))
+
+            elif parsed_url.path == "/nibygotchi/shop":
+                content_length = int(self.headers['Content-Length'])
+                post_data = self.rfile.read(content_length)
+                post_data_str = post_data.decode('utf-8')
+                try:
+                    if post_data_str not in shop_items:
+                        shop_items.append(post_data_str)
+                        self.send_response(200)
+                        self.send_header('Content-type', 'application/json')
+                        self.end_headers()
+
+                        # Return success message
+                        response = {
+                            'status': 'success',
+                            'message': 'Saved purchase',
+                            'purchased items': shop_items
+                        }
+                        save_shop_items(shop_items)
+                        self.wfile.write(json.dumps(response, default=str).encode('utf-8'))
+                    else:
+                        self.send_response(400)
+                        self.send_header('Content-type', 'application/json')
+                        self.end_headers()
+
+                        # Return success message
+                        response = {
+                            'status': 'warning',
+                            'message': 'Purchase already saved',
+                            'purchased items': shop_items
+                        }
+                        self.wfile.write(json.dumps(response, default=str).encode('utf-8'))
+                except Exception:
+                    self.send_response(400)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+
+                    response = {
+                        'status': 'error',
+                        'message': 'Something went wrong'
                     }
                     self.wfile.write(json.dumps(response).encode('utf-8'))
         else:
