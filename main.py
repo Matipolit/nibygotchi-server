@@ -66,7 +66,7 @@ def load_stats():
 def load_shop_items():
     if os.path.exists(shop_file):
         print("Reading shop items from file")
-        with open(stats_file, 'r') as file:
+        with open(shop_file, 'r') as file:
             return json.load(file)
     else:
         print("Shop file does not exist")
