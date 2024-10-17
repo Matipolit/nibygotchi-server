@@ -116,7 +116,7 @@ class MyServer(BaseHTTPRequestHandler):
         if parsed_url.path == "/nibygotchi":
             if query_params.get("passwd", [None])[0] == self.passwd:
                 new_stats = stats
-                new_stats[shop_items] = shop_items;
+                new_stats["shop_items"] = shop_items;
                 self.send_response(200)
                 self.send_header("Content-type", "application/json")
                 self.end_headers()
